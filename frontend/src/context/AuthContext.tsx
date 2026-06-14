@@ -7,6 +7,7 @@ export interface UserProfile {
   email: string;
   role: 'customer' | 'retailer' | 'admin';
   phone?: string;
+  profilePhoto?: string;
 }
 
 export interface RetailerProfile {
@@ -18,6 +19,12 @@ export interface RetailerProfile {
   isVerified: boolean;
   rating: number;
   reviewsCount: number;
+  openingHours?: string;
+  closingHours?: string;
+  storeLogo?: string;
+  storeBanner?: string;
+  contactPhone?: string;
+  contactEmail?: string;
 }
 
 interface AuthContextType {

@@ -23,6 +23,8 @@ const Register: React.FC = () => {
   const [longitude, setLongitude] = useState('77.6413');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
+  const [openingHours, setOpeningHours] = useState('09:00');
+  const [closingHours, setClosingHours] = useState('21:00');
   
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,6 +67,8 @@ const Register: React.FC = () => {
       registrationData.longitude = Number(longitude);
       registrationData.category = category;
       registrationData.description = description;
+      registrationData.openingHours = openingHours;
+      registrationData.closingHours = closingHours;
     }
 
     setLoading(true);
@@ -268,6 +272,35 @@ const Register: React.FC = () => {
                     className="input-premium"
                     placeholder="E.g., Groceries, Dairy, Beverages (comma separated)"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">
+                      Opening Hours
+                    </label>
+                    <input
+                      type="text"
+                      required={role === 'retailer'}
+                      value={openingHours}
+                      onChange={(e) => setOpeningHours(e.target.value)}
+                      className="input-premium"
+                      placeholder="E.g., 09:00 AM"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-2">
+                      Closing Hours
+                    </label>
+                    <input
+                      type="text"
+                      required={role === 'retailer'}
+                      value={closingHours}
+                      onChange={(e) => setClosingHours(e.target.value)}
+                      className="input-premium"
+                      placeholder="E.g., 09:00 PM"
+                    />
+                  </div>
                 </div>
 
                 <div>

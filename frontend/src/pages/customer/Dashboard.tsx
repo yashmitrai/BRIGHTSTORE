@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layouts/Layout';
 import Spinner from '../../components/common/Spinner';
 import api from '../../services/api';
-import { Search, ShoppingCart, ShoppingBag, Plus, Minus, ArrowRight, Check, MapPin, Sparkles, X } from 'lucide-react';
+import { Search, ShoppingCart, ShoppingBag, Plus, Minus, ArrowRight, Check, MapPin, Sparkles, X, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import RetailerProfileModal from '../../components/common/RetailerProfileModal';
 
 interface Product {
   _id: string;
@@ -12,10 +13,19 @@ interface Product {
   price: number;
   category: string;
   imageUrl: string;
+  images?: string[];
   stock: number;
   retailer?: {
+    _id: string;
     storeName: string;
     rating: number;
+    storeAddress?: string;
+    location?: {
+      coordinates: [number, number];
+    };
+    description?: string;
+    openingHours?: string;
+    closingHours?: string;
   };
 }
 
@@ -36,6 +46,47 @@ const CustomerDashboard: React.FC = () => {
   // Cart State
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
+
+  // Address and Distance states
+  const [defaultAddress, setDefaultAddress] = useState<any | null>(null);
+
+  // Modal states
+  const [detailsProduct, setDetailsProduct] = useState<Product | null>(null);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileRetailerId, setProfileRetailerId] = useState('');
+
+  // Fetch customer default address
+  const fetchDefaultAddress = async () => {
+    try {
+      const response = await api.get('/addresses');
+      const def = response.data.find((a: any) => a.isDefault);
+      if (def) {
+        setDefaultAddress(def);
+      } else if (response.data.length > 0) {
+        setDefaultAddress(response.data[0]);
+      }
+    } catch (err) {
+      console.error('Error fetching customer address', err);
+    }
+  };
+
+  const getDistanceToRetailer = (product: Product) => {
+    if (!defaultAddress || !product.retailer?.location?.coordinates) return null;
+    const [retLng, retLat] = product.retailer.location.coordinates;
+    const custLat = defaultAddress.latitude;
+    const custLng = defaultAddress.longitude;
+
+    const R = 6371; // km
+    const dLat = (retLat - custLat) * Math.PI / 180;
+    const dLon = (retLng - custLng) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(custLat * Math.PI / 180) * Math.cos(retLat * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return (R * c).toFixed(1);
+  };
 
   // Load cart from session/local storage
   useEffect(() => {
@@ -77,6 +128,7 @@ const CustomerDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchProducts();
+    fetchDefaultAddress();
   }, []);
 
   // Filtered Products
@@ -219,7 +271,13 @@ const CustomerDashboard: React.FC = () => {
               return (
                 <div key={product._id} className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800/80 rounded-xl overflow-hidden shadow-premium hover:shadow-premium-md transition-all group flex flex-col justify-between">
                   <div>
-                    <div className="h-40 bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
+                    <div
+                      onClick={() => {
+                        setDetailsProduct(product);
+                        setActiveImageIdx(0);
+                      }}
+                      className="h-40 bg-slate-100 dark:bg-slate-800 overflow-hidden relative cursor-pointer"
+                    >
                       {product.imageUrl ? (
                         <img
                           src={product.imageUrl}
@@ -238,12 +296,30 @@ const CustomerDashboard: React.FC = () => {
 
                     <div className="p-4">
                       {product.retailer && (
-                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold mb-1">
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProfileRetailerId(product.retailer!._id);
+                            setProfileModalOpen(true);
+                          }}
+                          className="flex items-center gap-1.5 text-[10px] text-slate-400 font-semibold mb-1 hover:underline hover:text-blue-500 cursor-pointer"
+                        >
                           <MapPin className="w-3 h-3 text-blue-500" />
                           <span>{product.retailer.storeName}</span>
+                          {getDistanceToRetailer(product) && (
+                            <span className="text-slate-400 font-normal">({getDistanceToRetailer(product)} km)</span>
+                          )}
                         </div>
                       )}
-                      <h3 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">{product.name}</h3>
+                      <h3
+                        onClick={() => {
+                          setDetailsProduct(product);
+                          setActiveImageIdx(0);
+                        }}
+                        className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate cursor-pointer hover:text-blue-500"
+                      >
+                        {product.name}
+                      </h3>
                       <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 min-h-8 leading-relaxed">{product.description}</p>
                     </div>
                   </div>
@@ -364,6 +440,161 @@ const CustomerDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Product Details Modal */}
+      {detailsProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/20 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-premium-lg overflow-hidden animate-slide-up flex flex-col max-h-[85vh]">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-850 flex items-center justify-between shrink-0">
+              <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">Product Details</h3>
+              <button
+                onClick={() => setDetailsProduct(null)}
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto p-5 space-y-5 flex-1">
+              {/* Images view */}
+              <div className="relative h-64 bg-slate-100 dark:bg-slate-800 rounded-xl overflow-hidden border border-slate-200/50 dark:border-slate-800 flex items-center justify-center">
+                {detailsProduct.images && detailsProduct.images.length > 0 ? (
+                  <>
+                    <img
+                      src={detailsProduct.images[activeImageIdx]}
+                      alt={detailsProduct.name}
+                      className="w-full h-full object-cover"
+                    />
+                    {detailsProduct.images.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setActiveImageIdx((prev) => (prev > 0 ? prev - 1 : detailsProduct.images!.length - 1))}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white/80 dark:bg-slate-950/80 text-slate-800 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-950 transition-colors"
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActiveImageIdx((prev) => (prev < detailsProduct.images!.length - 1 ? prev + 1 : 0))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-white/80 dark:bg-slate-950/80 text-slate-800 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-950 transition-colors"
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </>
+                ) : detailsProduct.imageUrl ? (
+                  <img src={detailsProduct.imageUrl} alt={detailsProduct.name} className="w-full h-full object-cover" />
+                ) : (
+                  <ShoppingBag className="w-12 h-12 text-slate-350" />
+                )}
+
+                <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-slate-950/80 text-white text-[10px] font-bold uppercase tracking-wider">
+                  {detailsProduct.category}
+                </span>
+              </div>
+
+              {/* Thumbnails if multiple */}
+              {detailsProduct.images && detailsProduct.images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 max-w-full">
+                  {detailsProduct.images.map((img, idx) => (
+                    <button
+                      key={img}
+                      type="button"
+                      onClick={() => setActiveImageIdx(idx)}
+                      className={`w-12 h-12 rounded-lg border overflow-hidden shrink-0 transition-all ${
+                        idx === activeImageIdx
+                          ? 'border-blue-500 ring-2 ring-blue-500/25'
+                          : 'border-slate-200 dark:border-slate-800 opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Details info */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-baseline gap-4">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
+                    {detailsProduct.name}
+                  </h4>
+                  <span className="text-sm font-black font-mono text-slate-900 dark:text-white shrink-0">
+                    ₹{detailsProduct.price}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                  {detailsProduct.description || 'No description provided.'}
+                </p>
+              </div>
+
+              {/* Retailer Card info */}
+              {detailsProduct.retailer && (
+                <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 rounded-xl space-y-3">
+                  <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 block">Sold By Merchant</span>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <h5
+                        onClick={() => {
+                          setDetailsProduct(null);
+                          setProfileRetailerId(detailsProduct.retailer!._id);
+                          setProfileModalOpen(true);
+                        }}
+                        className="font-bold text-xs text-slate-800 dark:text-slate-200 hover:underline hover:text-blue-500 cursor-pointer"
+                      >
+                        {detailsProduct.retailer.storeName}
+                      </h5>
+                      <p className="text-[10px] text-slate-455 mt-0.5 leading-relaxed">
+                        {detailsProduct.retailer.storeAddress || 'Local neighborhood retailer'}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/20 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200/40">
+                        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                        <span>{detailsProduct.retailer.rating}</span>
+                      </div>
+                      {getDistanceToRetailer(detailsProduct) && (
+                        <span className="text-[9px] font-semibold text-slate-455">
+                          {getDistanceToRetailer(detailsProduct)} km away
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-slate-100 dark:border-slate-850 flex gap-3 shrink-0">
+              <button
+                onClick={() => setDetailsProduct(null)}
+                className="btn-secondary text-xs flex-1"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  addToCart(detailsProduct);
+                  setDetailsProduct(null);
+                }}
+                className="btn-accent text-xs flex-1 font-bold shadow-sm"
+              >
+                Add to Cart
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Retailer Profile Modal */}
+      <RetailerProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        retailerId={profileRetailerId}
+      />
     </Layout>
   );
 };

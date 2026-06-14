@@ -16,6 +16,9 @@ import notificationRoutes from './routes/notificationRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 import adminRoutes from './routes/adminRoutes';
 import imageRoutes from './routes/imageRoutes';
+import retailerRoutes from './routes/retailerRoutes';
+import reviewRoutes from './routes/reviewRoutes';
+import ticketRoutes from './routes/ticketRoutes';
 
 // Load Env
 dotenv.config();
@@ -52,6 +55,9 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/retailers', retailerRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/tickets', ticketRoutes);
 
 // Base Status Route
 app.get('/health', (req, res) => {

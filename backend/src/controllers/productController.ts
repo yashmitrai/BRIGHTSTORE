@@ -29,7 +29,7 @@ export const getProducts = async (req: AuthRequest, res: Response) => {
   }
 
   try {
-    const products = await Product.find(filter).populate('retailer', 'storeName rating');
+    const products = await Product.find(filter).populate('retailer');
     return res.json(products);
   } catch (error) {
     return res.status(500).json({ message: (error as Error).message });
@@ -37,7 +37,7 @@ export const getProducts = async (req: AuthRequest, res: Response) => {
 };
 
 export const createProduct = async (req: AuthRequest, res: Response) => {
-  const { name, description, price, category, imageUrl, stock, sku } = req.body;
+  const { name, description, price, category, imageUrl, images, stock, sku } = req.body;
 
   try {
     if (!req.user) {
@@ -49,13 +49,17 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ message: 'Retailer profile required to create products' });
     }
 
+    const productImages = Array.isArray(images) ? images : (imageUrl ? [imageUrl] : []);
+    const defaultImg = productImages[0] || imageUrl || '';
+
     const product = await Product.create({
       retailer: retailer._id,
       name,
       description,
       price,
       category,
-      imageUrl,
+      imageUrl: defaultImg,
+      images: productImages,
       stock: stock || 0,
       sku,
     });
@@ -68,7 +72,7 @@ export const createProduct = async (req: AuthRequest, res: Response) => {
 
 export const updateProduct = async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { name, description, price, category, imageUrl, stock, sku } = req.body;
+  const { name, description, price, category, imageUrl, images, stock, sku } = req.body;
 
   try {
     if (!req.user) {
@@ -88,13 +92,24 @@ export const updateProduct = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    product.name = name ?? product.name;
-    product.description = description ?? product.description;
-    product.price = price ?? product.price;
-    product.category = category ?? product.category;
-    product.imageUrl = imageUrl ?? product.imageUrl;
-    product.stock = stock ?? product.stock;
-    product.sku = sku ?? product.sku;
+    if (name !== undefined) product.name = name;
+    if (description !== undefined) product.description = description;
+    if (price !== undefined) product.price = price;
+    if (category !== undefined) product.category = category;
+    if (stock !== undefined) product.stock = stock;
+    if (sku !== undefined) product.sku = sku;
+
+    if (images !== undefined) {
+      product.images = Array.isArray(images) ? images : [];
+      product.imageUrl = product.images[0] || imageUrl || '';
+    } else if (imageUrl !== undefined) {
+      product.imageUrl = imageUrl;
+      if (product.images.length === 0) {
+        product.images = [imageUrl];
+      } else {
+        product.images[0] = imageUrl;
+      }
+    }
 
     await product.save();
 

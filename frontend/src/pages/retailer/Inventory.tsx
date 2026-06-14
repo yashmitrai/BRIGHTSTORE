@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layouts/Layout';
 import Spinner from '../../components/common/Spinner';
 import api from '../../services/api';
-import { Plus, Edit3, Trash2, Tag, Search, ShoppingBag } from 'lucide-react';
+import { Plus, Edit3, Trash2, Tag, Search, ShoppingBag, UploadCloud, X, ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface Product {
   _id: string;
@@ -11,6 +11,7 @@ interface Product {
   price: number;
   category: string;
   imageUrl: string;
+  images?: string[];
   stock: number;
   sku: string;
 }
@@ -34,6 +35,86 @@ const Inventory: React.FC = () => {
   
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await uploadFiles(e.dataTransfer.files);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      await uploadFiles(e.target.files);
+    }
+  };
+
+  const uploadFiles = async (fileList: FileList) => {
+    const filesToUpload = Array.from(fileList);
+    if (filesToUpload.length === 0) return;
+    if (images.length + filesToUpload.length > 5) {
+      alert("You can upload a maximum of 5 images per product.");
+      return;
+    }
+
+    const formData = new FormData();
+    filesToUpload.forEach((file) => {
+      formData.append('images', file);
+    });
+
+    setUploadingImage(true);
+    try {
+      const response = await api.post('/images/upload-multiple', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      setImages([...images, ...response.data.urls]);
+    } catch (err: any) {
+      alert(err.response?.data?.message || 'Failed to upload images');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeImage = async (index: number) => {
+    const urlToRemove = images[index];
+    try {
+      await api.post('/images/delete', { url: urlToRemove });
+    } catch (err) {
+      console.error("Failed to delete image from storage server", err);
+    }
+    setImages(images.filter((_, i) => i !== index));
+  };
+
+  const moveImage = (index: number, direction: 'left' | 'right') => {
+    const newImages = [...images];
+    if (direction === 'left' && index > 0) {
+      const temp = newImages[index];
+      newImages[index] = newImages[index - 1];
+      newImages[index - 1] = temp;
+    } else if (direction === 'right' && index < images.length - 1) {
+      const temp = newImages[index];
+      newImages[index] = newImages[index + 1];
+      newImages[index + 1] = temp;
+    }
+    setImages(newImages);
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -58,6 +139,7 @@ const Inventory: React.FC = () => {
     setPrice('');
     setCategory('Groceries');
     setImageUrl('');
+    setImages([]);
     setStock('10');
     setSku('');
     setFormOpen(true);
@@ -70,6 +152,7 @@ const Inventory: React.FC = () => {
     setPrice(String(product.price));
     setCategory(product.category);
     setImageUrl(product.imageUrl || '');
+    setImages(product.images || (product.imageUrl ? [product.imageUrl] : []));
     setStock(String(product.stock));
     setSku(product.sku || '');
     setFormOpen(true);
@@ -85,7 +168,8 @@ const Inventory: React.FC = () => {
       description,
       price: Number(price),
       category,
-      imageUrl,
+      imageUrl: images[0] || imageUrl || '',
+      images,
       stock: Number(stock),
       sku,
     };
@@ -330,50 +414,113 @@ const Inventory: React.FC = () => {
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-550 dark:text-slate-400 uppercase tracking-wider mb-2">
-                    Product Image
+                    Product Images (up to 5)
                   </label>
-                  <div className="flex items-center gap-4">
-                    {imageUrl && (
-                      <div className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-250 dark:border-slate-800 shrink-0">
-                        <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          
-                          const formData = new FormData();
-                          formData.append('image', file);
-                          
-                          setUploadingImage(true);
-                          try {
-                            const response = await api.post('/images/upload', formData, {
-                              headers: {
-                                'Content-Type': 'multipart/form-data',
-                              },
-                            });
-                            setImageUrl(response.data.url);
-                          } catch (err: any) {
-                            alert(err.response?.data?.message || 'Failed to upload image');
-                          } finally {
-                            setUploadingImage(false);
-                          }
-                        }}
-                        className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-slate-800 dark:file:text-slate-200 cursor-pointer"
-                      />
-                      {uploadingImage && <span className="text-[10px] text-blue-500 font-semibold block mt-1">Uploading to CDN...</span>}
-                    </div>
+                  
+                  <div
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-xl p-5 text-center transition-all cursor-pointer ${
+                      dragActive
+                        ? 'border-blue-500 bg-blue-50/20 dark:bg-blue-950/10'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-350 hover:bg-slate-50/30'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      id="file-upload-multiple"
+                    />
+                    <label htmlFor="file-upload-multiple" className="cursor-pointer">
+                      <UploadCloud className="w-8 h-8 mx-auto text-slate-400 mb-2" />
+                      <span className="text-xs font-bold text-slate-650 dark:text-slate-350 block">
+                        Drag & drop images, or <span className="text-blue-500 hover:underline">browse</span>
+                      </span>
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        Support for JPG, PNG, WebP (Max 5)
+                      </span>
+                    </label>
                   </div>
+
+                  {uploadingImage && (
+                    <div className="flex items-center gap-2 mt-2 text-[10px] font-bold text-blue-500">
+                      <Spinner size="sm" />
+                      <span>Uploading files to server...</span>
+                    </div>
+                  )}
+
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-5 gap-2 mt-3">
+                      {images.map((url, idx) => (
+                        <div
+                          key={url}
+                          className="relative group border border-slate-205 dark:border-slate-800 rounded-lg overflow-hidden h-14 bg-slate-50 dark:bg-slate-900"
+                        >
+                          <img src={url} alt={`Product image ${idx + 1}`} className="w-full h-full object-cover" />
+                          
+                          {idx === 0 && (
+                            <span className="absolute bottom-0 left-0 right-0 bg-slate-950/80 text-[8px] text-center font-bold text-white uppercase py-0.5">
+                              Main
+                            </span>
+                          )}
+
+                          <div className="absolute inset-0 bg-slate-950/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                            {idx > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => moveImage(idx, 'left')}
+                                className="p-0.5 rounded bg-white text-slate-900 hover:bg-slate-100"
+                                title="Move Left"
+                              >
+                                <ArrowLeft className="w-2.5 h-2.5" />
+                              </button>
+                            )}
+                            
+                            <button
+                              type="button"
+                              onClick={() => removeImage(idx)}
+                              className="p-0.5 rounded bg-red-600 text-white hover:bg-red-500"
+                              title="Delete Image"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+
+                            {idx < images.length - 1 && (
+                              <button
+                                type="button"
+                                onClick={() => moveImage(idx, 'right')}
+                                className="p-0.5 rounded bg-white text-slate-900 hover:bg-slate-100"
+                                title="Move Right"
+                              >
+                                <ArrowRight className="w-2.5 h-2.5" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
                   <input
                     type="url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className="input-premium mt-2.5"
-                    placeholder="Or paste an image URL (optional)"
+                    value={images[0] || imageUrl || ''}
+                    onChange={(e) => {
+                      const newUrl = e.target.value;
+                      if (images.length === 0) {
+                        setImages([newUrl]);
+                      } else {
+                        const newImages = [...images];
+                        newImages[0] = newUrl;
+                        setImages(newImages);
+                      }
+                    }}
+                    className="input-premium mt-3 text-xs"
+                    placeholder="Or paste main image URL directly (optional)"
                   />
                 </div>
 

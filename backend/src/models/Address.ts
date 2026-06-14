@@ -12,9 +12,23 @@ const addressSchema = new Schema(
       default: 'Home',
       trim: true,
     },
+    houseNumber: {
+      type: String,
+      required: [true, 'House number/flat number is required'],
+      trim: true,
+    },
     street: {
       type: String,
       required: [true, 'Street address is required'],
+      trim: true,
+    },
+    area: {
+      type: String,
+      required: [true, 'Area/locality is required'],
+      trim: true,
+    },
+    landmark: {
+      type: String,
       trim: true,
     },
     city: {
@@ -22,10 +36,23 @@ const addressSchema = new Schema(
       required: [true, 'City is required'],
       trim: true,
     },
+    state: {
+      type: String,
+      required: [true, 'State is required'],
+      trim: true,
+    },
+    pincode: {
+      type: String,
+      required: [true, 'Pincode is required'],
+      trim: true,
+    },
     postalCode: {
       type: String,
-      required: [true, 'Postal code is required'],
       trim: true,
+    },
+    isDefault: {
+      type: Boolean,
+      default: false,
     },
     latitude: {
       type: Number,

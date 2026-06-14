@@ -21,6 +21,7 @@ import {
   X,
   LogOut,
   ChevronRight,
+  LifeBuoy,
 } from 'lucide-react';
 
 interface NotificationItem {
@@ -132,6 +133,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { name: 'Request Delivery', path: '/order-request', icon: Send },
     { name: 'My Orders', path: '/orders', icon: ShoppingBag },
     { name: 'Saved Addresses', path: '/addresses', icon: MapPin },
+    { name: 'Support Tickets', path: '/support', icon: LifeBuoy },
     { name: 'My Profile', path: '/profile', icon: User },
   ];
 
@@ -147,6 +149,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { name: 'Admin Overview', path: '/admin/dashboard', icon: LayoutDashboard },
     { name: 'Verify Retailers', path: '/admin/verification', icon: ShieldCheck },
     { name: 'Manage Users', path: '/admin/users', icon: Users },
+    { name: 'Support Tickets', path: '/admin/tickets', icon: LifeBuoy },
     { name: 'My Profile', path: '/profile', icon: User },
   ];
 

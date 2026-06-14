@@ -5,6 +5,8 @@ import Skeleton from '../../components/common/Skeleton';
 import api from '../../services/api';
 import { useSocket } from '../../hooks/useSocket';
 import { ShoppingBag, Clock, ShieldCheck, MapPin, Truck, CheckCircle2, ChevronRight, DollarSign, RefreshCw, Star, Info } from 'lucide-react';
+import RetailerProfileModal from '../../components/common/RetailerProfileModal';
+import WriteReviewModal from '../../components/common/WriteReviewModal';
 
 interface Order {
   _id: string;
@@ -57,6 +59,13 @@ const MyOrders: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedOfferId, setExpandedOfferId] = useState<string | null>(null);
+
+  // Profile & Review Modal states
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileRetailerId, setProfileRetailerId] = useState('');
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+  const [reviewRetailerId, setReviewRetailerId] = useState('');
+  const [reviewRetailerName, setReviewRetailerName] = useState('');
 
   const fetchOrders = async (selectFirst = false) => {
     try {
@@ -344,22 +353,42 @@ const MyOrders: React.FC = () => {
                       {selectedOrder.deliveryPreference} delivery
                     </p>
                   </div>
-                </div>
-
-                {/* Assigned Retailer Card */}
+                </div>                {/* Assigned Retailer Card */}
                 {selectedOrder.retailer && (
                   <div className="p-4 bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 rounded-xl">
                     <span className="text-[9px] font-bold uppercase text-slate-400">Assigned Retailer</span>
                     <div className="flex items-start justify-between mt-2">
                       <div>
-                        <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200">{selectedOrder.retailer.storeName}</h4>
-                        <p className="text-[11px] text-slate-450 leading-relaxed mt-0.5">{selectedOrder.retailer.storeAddress}</p>
+                        <h4
+                          onClick={() => {
+                            setProfileRetailerId(selectedOrder.retailer!._id);
+                            setProfileModalOpen(true);
+                          }}
+                          className="font-bold text-xs text-slate-850 dark:text-slate-200 hover:underline hover:text-blue-500 cursor-pointer"
+                        >
+                          {selectedOrder.retailer.storeName}
+                        </h4>
+                        <p className="text-[11px] text-slate-455 leading-relaxed mt-0.5">{selectedOrder.retailer.storeAddress}</p>
                       </div>
-                      <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/20 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200/40">
-                        <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                        <span>{selectedOrder.retailer.rating}</span>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/20 text-amber-600 text-[10px] font-bold px-1.5 py-0.5 rounded border border-amber-200/40">
+                          <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                          <span>{selectedOrder.retailer.rating}</span>
+                        </div>
                       </div>
                     </div>
+                    {selectedOrder.status === 'delivered' && (
+                      <button
+                        onClick={() => {
+                          setReviewRetailerId(selectedOrder.retailer!._id);
+                          setReviewRetailerName(selectedOrder.retailer!.storeName);
+                          setReviewModalOpen(true);
+                        }}
+                        className="btn-accent text-[10px] py-1.5 px-3 font-bold mt-3.5 shadow-sm"
+                      >
+                        Write Store Review
+                      </button>
+                    )}
                   </div>
                 )}
 
@@ -405,7 +434,15 @@ const MyOrders: React.FC = () => {
                             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                               <div className="space-y-1 max-w-sm">
                                 <div className="flex items-center gap-2">
-                                  <h5 className="font-bold text-xs text-slate-850 dark:text-slate-100">{offer.retailer.storeName}</h5>
+                                  <h5
+                                    onClick={() => {
+                                      setProfileRetailerId(offer.retailer._id);
+                                      setProfileModalOpen(true);
+                                    }}
+                                    className="font-bold text-xs text-slate-850 dark:text-slate-100 hover:underline hover:text-blue-500 cursor-pointer"
+                                  >
+                                    {offer.retailer.storeName}
+                                  </h5>
                                   <div className="flex items-center gap-0.5 text-[9px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-950/20 px-1.5 py-0.5 rounded">
                                     <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
                                     <span>{offer.retailer.rating}</span>
@@ -500,6 +537,25 @@ const MyOrders: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Retailer Profile Modal */}
+      <RetailerProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+        retailerId={profileRetailerId}
+      />
+
+      {/* Review Submission Modal */}
+      <WriteReviewModal
+        isOpen={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        retailerId={reviewRetailerId}
+        retailerName={reviewRetailerName}
+        onSuccess={async () => {
+          alert('Thank you for submitting your store review!');
+          await fetchOrders();
+        }}
+      />
     </Layout>
   );
 };

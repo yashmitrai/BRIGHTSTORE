@@ -53,6 +53,30 @@ const retailerSchema = new Schema(
       enum: ['active', 'inactive'],
       default: 'active',
     },
+    openingHours: {
+      type: String,
+      default: '09:00',
+    },
+    closingHours: {
+      type: String,
+      default: '21:00',
+    },
+    storeLogo: {
+      type: String,
+      default: '',
+    },
+    storeBanner: {
+      type: String,
+      default: '',
+    },
+    contactPhone: {
+      type: String,
+      default: '',
+    },
+    contactEmail: {
+      type: String,
+      default: '',
+    },
   },
   {
     timestamps: true,

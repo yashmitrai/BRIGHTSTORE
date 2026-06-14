@@ -7,6 +7,8 @@ import Spinner from '../components/common/Spinner';
 import LandingPage from '../pages/LandingPage';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
+import ForgotPassword from '../pages/auth/ForgotPassword';
+import ResetPassword from '../pages/auth/ResetPassword';
 
 // Customer Pages
 import CustomerDashboard from '../pages/customer/Dashboard';
@@ -26,6 +28,11 @@ import AdminDashboard from '../pages/admin/Dashboard';
 import Verification from '../pages/admin/Verification';
 import UserManagement from '../pages/admin/Users';
 import NotificationsPage from '../pages/NotificationsPage';
+
+// Support Tickets Pages
+import SupportDashboard from '../pages/customer/SupportDashboard';
+import TicketDetail from '../pages/customer/TicketDetail';
+import AdminTickets from '../pages/admin/Tickets';
 
 // Private Route Guard
 interface PrivateRouteProps {
@@ -108,6 +115,22 @@ const AppRoutes: React.FC = () => {
           </PublicRoute>
         }
       />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicRoute>
+            <ForgotPassword />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/reset-password/:token"
+        element={
+          <PublicRoute>
+            <ResetPassword />
+          </PublicRoute>
+        }
+      />
 
       {/* Shared Protected Profile Page */}
       <Route
@@ -157,6 +180,22 @@ const AppRoutes: React.FC = () => {
         element={
           <PrivateRoute allowedRoles={['customer']}>
             <Addresses />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/support"
+        element={
+          <PrivateRoute allowedRoles={['customer']}>
+            <SupportDashboard />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/support/ticket/:id"
+        element={
+          <PrivateRoute allowedRoles={['customer', 'admin']}>
+            <TicketDetail />
           </PrivateRoute>
         }
       />
@@ -217,6 +256,14 @@ const AppRoutes: React.FC = () => {
         element={
           <PrivateRoute allowedRoles={['admin']}>
             <UserManagement />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/tickets"
+        element={
+          <PrivateRoute allowedRoles={['admin']}>
+            <AdminTickets />
           </PrivateRoute>
         }
       />
