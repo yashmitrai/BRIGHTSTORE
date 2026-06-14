@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+
+# Production builds
+dist/
+backend/dist/
+frontend/dist/
+
+# Environment variables
+.env
+backend/.env
+frontend/.env
+*.local
+
+# IDE and OS files
+.DS_Store
+.vscode/
+.idea/
+.gemini/
+.system_generated/
+uploads/
+backend/uploads/
