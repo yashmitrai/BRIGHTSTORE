@@ -25,6 +25,10 @@ export interface RetailerProfile {
   storeBanner?: string;
   contactPhone?: string;
   contactEmail?: string;
+  location?: {
+    type: string;
+    coordinates: [number, number];
+  };
 }
 
 interface AuthContextType {

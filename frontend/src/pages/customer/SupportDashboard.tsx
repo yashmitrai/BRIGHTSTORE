@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layouts/Layout';
 import Spinner from '../../components/common/Spinner';
 import api from '../../services/api';
-import { MessageSquare, Plus, CheckCircle, Clock, AlertCircle, HelpCircle, ArrowRight, ShieldQuestion } from 'lucide-react';
+import { MessageSquare, Plus, CheckCircle, Clock, AlertCircle, HelpCircle, ArrowRight, ShieldQuestion, ChevronRight } from 'lucide-react';
 
 interface Ticket {
   _id: string;
